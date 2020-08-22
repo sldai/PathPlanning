@@ -14,7 +14,7 @@ import math
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) +
                 "/../../Search_based_Planning/")
 
-from Search_based_Planning.Search_2D import plotting, env
+from Search_2D import plotting, env
 
 
 class AraStar:
@@ -48,19 +48,14 @@ class AraStar:
 
     def searching(self):
         self.init()
-        self.ImprovePath()
-        self.path.append(self.extract_path())
 
-        while self.update_e() > 1:                                          # continue condition
-            self.e -= 0.4                                                   # increase weight
+        while self.update_e() >= 1:                                         # continue condition
+            self.INCONS, self.CLOSED = dict(), set()                        # clear incons, closed                         
+            self.ImprovePath()                                              # improve path
+            self.path.append(self.extract_path())                           # publish solution
+            self.e -= 0.4                                                   # decrease weight
             self.OPEN.update(self.INCONS)
             self.OPEN = {s: self.f_value(s) for s in self.OPEN}             # update f_value of OPEN set
-
-            self.INCONS = dict()
-            self.CLOSED = set()
-            self.ImprovePath()                                              # improve path
-            self.path.append(self.extract_path())
-
         return self.path, self.visited
 
     def ImprovePath(self):
@@ -73,6 +68,7 @@ class AraStar:
         while True:
             s, f_small = self.calc_smallest_f()
 
+            # goal is already the most promising node 
             if self.f_value(self.s_goal) <= f_small:
                 break
 
@@ -80,10 +76,11 @@ class AraStar:
             self.CLOSED.add(s)
 
             for s_n in self.get_neighbor(s):
-                if s_n in self.obs:
-                    continue
 
                 new_cost = self.g[s] + self.cost(s, s_n)
+                
+                if new_cost == math.inf:  # inf cost means collision
+                    continue
 
                 if s_n not in self.g or new_cost < self.g[s_n]:
                     self.g[s_n] = new_cost
@@ -91,7 +88,7 @@ class AraStar:
                     visited_each.append(s_n)
 
                     if s_n not in self.CLOSED:
-                        self.OPEN[s_n] = self.f_value(s_n)
+                        self.OPEN[s_n] = self.f_value(s_n)     
                     else:
                         self.INCONS[s_n] = 0.0
 
@@ -206,7 +203,7 @@ class AraStar:
 
         return False
 
-
+import time
 def main():
     s_start = (5, 5)
     s_goal = (45, 25)
